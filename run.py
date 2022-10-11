@@ -4,7 +4,6 @@ import logging
 import os.path
 
 import flywheel
-import pandas as pd
 import sys
 import subprocess as sp
 from io import StringIO
@@ -17,6 +16,7 @@ import json
 
 log = logging.getLogger(__name__)
 
+__version__ = "0.2.0"
 
 class Curator(HierarchyCurator):
 
@@ -43,8 +43,40 @@ class Curator(HierarchyCurator):
                 filepath = os.path.join(workdir, acquisition['label'] + os.extsep + ext)
                 file.download(filepath)
 
-                # build souvenir
-                img = gif_nifti.write_gif_normal(filepath)
+                # pull config settings
+                mode = gtk_context.config['gif-mode']
+                fps = gtk_context.config['frames-per-second']
+                size = gtk_context.config['image-size']
+
+
+                # Welcome message
+                welcome_str = '{} {}'.format('gif_your_nifti', __version__)
+                welcome_decor = '=' * len(welcome_str)
+                log.info('{}\n{}\n{}'.format(welcome_decor, welcome_str, welcome_decor))
+
+                log.info('Selections:')
+                log.info('  mode = {}'.format(mode))
+                log.info('  size = {}'.format(size))
+                log.info('  fps  = {}'.format(fps))
+
+                # --- build souvenir ---
+
+                # Determine gif creation mode
+                if mode in ['normal', 'pseudocolor', 'depth']:
+                    if mode == 'normal':
+                        img = gif_nifti.write_gif_normal(filepath, size, fps)
+                    elif mode == 'pseudocolor':
+                        if gtk_context.config.get('colormap') != None:
+                            cmap = gtk_context.config['colormap']
+                            log.info('  cmap = {}'.format(cmap))
+                            img = gif_nifti.write_gif_pseudocolor(filepath, size, fps, cmap)
+                        else:
+                            log.info('  cmap not set')
+                            img = gif_nifti.write_gif_pseudocolor(filepath, size, fps)
+                    elif mode == 'depth':
+                        img = gif_nifti.write_gif_depth(filepath, size, fps)
+                else:
+                    log.error("Mode: %m not supported, exiting now")
 
                 # build pdf
                 footnote = '"My Brain Image" was adapted from gif_your_nifti toolbox (www.github.com/miykael/gif_your_nifti)'
@@ -102,8 +134,10 @@ if __name__ == "__main__":
         config_dictionary = gtk_context.config_json['inputs']
 
         # pull api key from hidden file if present (generally file located here... $HOME/.config/flywheel/user.json)
-        if os.path.exists('/flywheel/v0/user.json'):
-            f = open('/flywheel/v0/user.json')
+        # apikey_file = os.path.join(os.environ["HOME"], '.config/flywheel/user.json')
+        apikey_file = "/flywheel/v0/user.json"
+        if os.path.exists(apikey_file):
+            f = open(apikey_file)
             data = json.load(f)
             os.environ['API-KEY'] = data["key"]
         config_dictionary['api-key']['key'] = os.environ['API-KEY']

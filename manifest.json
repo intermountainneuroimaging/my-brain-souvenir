@@ -29,7 +29,7 @@
             "description": "Frames per second setting for gif image."
         },
         "image-size": {
-            "type": "float",
+            "type": "number",
             "default": 1,
             "minimum": 0,
             "maximum": 1,
@@ -55,7 +55,7 @@
         },
         "gear-builder": {
             "category": "analysis",
-            "image": "amhe4269/my-brain-souvenir:0.2.0_inc0.0RC"
+            "image": "amhe4269/my-brain-souvenir:0.2.0_inc0.0RC1"
         }
     },
     "author": "Amy Hegarty",
@@ -80,5 +80,5 @@
     "label": "My Brain Souvenir",
     "url": "https://github.com/intermountainneuroimaging",
     "source": "https://github.com/intermountainneuroimaging",
-    "version": "0.2.0_inc0.0RC"
+    "version": "0.2.0_inc0.0RC1"
 }

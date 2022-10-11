@@ -228,6 +228,10 @@ def write_gif_depth(filename, size=1, fps=18):
     # Figure out extension
     ext = '.{}'.format(parse_filename(filename)[2])
 
+    # change image datatype
+    new_img = new_img * 255
+    new_img = new_img.astype('uint8')
+
     # Write gif file
     mimwrite(filename.replace(ext, '_depth.gif'), new_img,
              format='gif', fps=int(fps * size))
@@ -303,11 +307,16 @@ def write_gif_pseudocolor(filename, size=1, fps=18, colormap='hot'):
 
     # Figure out extension
     ext = '.{}'.format(parse_filename(filename)[2])
+
+    # change image datatype
+    cmap_img = cmap_img * 255
+    cmap_img = cmap_img.astype('uint8')
+
     # Write gif file
     mimwrite(filename.replace(ext, '_{}.gif'.format(colormap)),
              cmap_img, format='gif', fps=int(fps * size))
 
-    return new_img
+    return cmap_img
 
 
 def write_pdf(image, footnote=None, outfile="myImagePDF.pdf"):
