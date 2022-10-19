@@ -43,6 +43,21 @@
                       "Wistia", "hot", "afmhot", "gist_heat", "copper"],
             "description": "Matplotlib colormap for output images. Only used in combination with pseudocolor mode"
         },
+        "deface": {
+            "default": true,
+            "description": "perform pydeface before generating participant images",
+            "type": "boolean"
+        },
+        "brain-extract": {
+            "default": false,
+            "description": "perform FSL's brain extraction before generating participant images (slower)",
+            "type": "boolean"
+        },
+        "modalities": {
+            "type": "string",
+            "default": "T1, T2",
+            "description": "List of modalities to filter for generating image souvenirs. Multiple modalities may be entered by a comma seperated list (e.g.: T1, T2, 3D)"
+        },
         "debug": {
             "default": false,
             "description": "Log debug messages",
@@ -55,7 +70,7 @@
         },
         "gear-builder": {
             "category": "analysis",
-            "image": "amhe4269/my-brain-souvenir:0.2.0_inc0.0RC3"
+            "image": "amhe4269/my-brain-souvenir:0.2.0_inc0.0RC4"
         }
     },
     "author": "Amy Hegarty",
@@ -80,5 +95,5 @@
     "label": "My Brain Souvenir",
     "url": "https://github.com/intermountainneuroimaging",
     "source": "https://github.com/intermountainneuroimaging",
-    "version": "0.2.0_inc0.0RC3"
+    "version": "0.2.0_inc0.0RC4"
 }

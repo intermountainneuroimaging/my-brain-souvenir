@@ -1392,6 +1392,19 @@ dotenv = ["python-dotenv (>=0.10.4)"]
 email = ["email-validator (>=1.0.3)"]
 
 [[package]]
+name = "pydeface"
+version = "2.0.2"
+description = "A script to remove facial structure from MRI images."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+nibabel = "*"
+nipype = "*"
+numpy = "*"
+
+[[package]]
 name = "pydicom"
 version = "2.3.0"
 description = "A pure Python package for reading and writing DICOM data"
@@ -2056,7 +2069,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "flake8 
 [metadata]
 lock-version = "1.1"
     python-versions = "^3.8"
-content-hash = "352cef3d262d73cea4d8fb0211b258be97f966b6b106e8062c40072a772a4942"
+content-hash = "aaa1961a36a5355ed78b1a518ffe5cc8fbebf8e19bef3615fb776494a151e425"
 
 [metadata.files]
 appnope = [
@@ -3124,6 +3137,11 @@ pydantic = [
     {file = "pydantic-1.10.2-cp39-cp39-win_amd64.whl", hash = "sha256:c1ba1afb396148bbc70e9eaa8c06c1716fdddabaf86e7027c5988bae2a829ab6"},
     {file = "pydantic-1.10.2-py3-none-any.whl", hash = "sha256:1b6ee725bd6e83ec78b1aa32c5b1fa67a3a65badddde3976bca5fe4568f27709"},
     {file = "pydantic-1.10.2.tar.gz", hash = "sha256:91b8e218852ef6007c2b98cd861601c6a09f1aa32bbbb74fab5b1c33d4a1e410"},
+]
+pydeface = [
+    {file = "pydeface-2.0.2-py3-none-any.whl", hash = "sha256:beb838c4246b8c5798fdc3a331f3064d4aac1bcd1ac9c26b991c9f28207d059e"},
+    {file = "pydeface-2.0.2-py3.7.egg", hash = "sha256:ed5fa4eca9546d32b0d24631d62e1b2ae74acca53071f91c06c3deb8f38e18c8"},
+    {file = "pydeface-2.0.2.tar.gz", hash = "sha256:662263072ccccff9929432568caf5c183075f7fbf8f9d5c170767c3202c78f36"},
 ]
 pydicom = [
     {file = "pydicom-2.3.0-py3-none-any.whl", hash = "sha256:8ff31e077cc51d19ac3b8ca988ac486099cdebfaf885989079fdc7c75068cdd8"},

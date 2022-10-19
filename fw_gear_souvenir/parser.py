@@ -19,6 +19,7 @@ def parse_config(gear_context):
     get_parent_fn = getattr(gear_context.client, f"get_{analysis.parent.type}")
     parent = get_parent_fn(analysis.parent.id)
 
+
     nifti_file = gear_context.get_input_path("nifti")
     input_files = {
         "nifti": nifti_file

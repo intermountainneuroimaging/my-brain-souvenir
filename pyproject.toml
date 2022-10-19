@@ -21,6 +21,7 @@ license = "MIT"
     matplotlib = "^3.6.1"
     imageio = "^2.22.1"
     scikit-image = "^0.19.3"
+    pydeface = "^2.0.2"
 
 
     [tool.poetry.dev-dependencies]
