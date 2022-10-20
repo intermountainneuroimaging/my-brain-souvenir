@@ -319,7 +319,7 @@ def write_gif_pseudocolor(filename, size=1, fps=18, colormap='hot'):
     return cmap_img
 
 
-def write_pdf(image, footnote=None, outfile="myImagePDF.pdf"):
+def write_image(image, format="jpg", footnote=None, outfile="myImagePDF.pdf"):
     """
     Use gif image, generated from above functions to save image as pdf
     Args:
@@ -345,5 +345,5 @@ def write_pdf(image, footnote=None, outfile="myImagePDF.pdf"):
     # add footnote
     plt.figtext(0.05, 0.0, footnote)
 
-    plt.savefig(outfile, format="pdf",
+    plt.savefig(outfile, format=format,
                 bbox_inches="tight")

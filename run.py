@@ -52,8 +52,11 @@ class Curator(HierarchyCurator):
                 log.info("My Brain Souvenir stored for acquisition %s", acquisition.label)
                 flag = True
 
+                cleanup(gtk_context)
+
         if not flag:
             log.info("skipping acquisition %s", acquisition.label)
+
 
         # set return code
         return_code = 0
@@ -86,29 +89,45 @@ def gen_image(filepath, workdir=None, acquisition=None):
         run_bet(filepath)
 
     # --- build souvenir ---
+    searchfiles = sp.Popen(
+        "cd " + gtk_context.work_dir.absolute().as_posix() + "; ls *.nii.gz ",
+        shell=True,
+        stdout=sp.PIPE,
+        stderr=sp.PIPE, universal_newlines=True
+    )
+    stdout, _ = searchfiles.communicate()
 
-    # Determine gif creation mode
-    if mode in ['normal', 'pseudocolor', 'depth']:
-        if mode == 'normal':
-            img = gif_nifti.write_gif_normal(filepath, size, fps)
-        elif mode == 'pseudocolor':
-            if gtk_context.config.get('colormap') != None:
-                cmap = gtk_context.config['colormap']
-                log.info('  cmap = {}'.format(cmap))
-                img = gif_nifti.write_gif_pseudocolor(filepath, size, fps, cmap)
-            else:
-                log.info('  cmap not set')
-                img = gif_nifti.write_gif_pseudocolor(filepath, size, fps)
-        elif mode == 'depth':
-            img = gif_nifti.write_gif_depth(filepath, size, fps)
-    else:
-        log.error("Mode: %m not supported, exiting now")
+    filelist = stdout.strip("\n").split("\n")
+    os.chdir(gtk_context.work_dir.absolute().as_posix())
 
-    # build pdf
-    footnote = '"My Brain Image" was adapted from gif_your_nifti toolbox (www.github.com/miykael/gif_your_nifti)'
-    basename, ext = filepath.split(os.extsep, 1)
-    pdf_filename = filepath.replace(ext, 'pdf')
-    gif_nifti.write_pdf(img, footnote=footnote, outfile=pdf_filename)
+    for file in filelist:
+        # Determine gif creation mode
+
+        if mode in ['normal', 'pseudocolor', 'depth']:
+            if mode == 'normal':
+                img = gif_nifti.write_gif_normal(file, size, fps)
+            elif mode == 'pseudocolor':
+                if gtk_context.config.get('colormap') != None:
+                    cmap = gtk_context.config['colormap']
+                    log.info('  cmap = {}'.format(cmap))
+                    img = gif_nifti.write_gif_pseudocolor(file, size, fps, cmap)
+                else:
+                    log.info('  cmap not set')
+                    img = gif_nifti.write_gif_pseudocolor(file, size, fps)
+            elif mode == 'depth':
+                img = gif_nifti.write_gif_depth(file, size, fps)
+        else:
+            log.error("Mode: %m not supported, exiting now")
+
+        # build pdf
+        footnote = '"My Brain Image" was adapted from gif_your_nifti toolbox (www.github.com/miykael/gif_your_nifti)'
+        basename, ext = file.split(os.extsep, 1)
+        image_filename = file.replace(ext, 'jpg')
+        gif_nifti.write_image(img, format="jpg", footnote=footnote, outfile=image_filename)
+
+        # ADD DEPTH IMAGE FOR BRAIN IMAGES
+        if "brain" in file:
+            img = gif_nifti.write_gif_depth(file, size, fps)
 
 
 def run_with_single_input(gtk_context, input_files):
@@ -130,6 +149,8 @@ def run_with_single_input(gtk_context, input_files):
 
     log.info("My Brain Souvenir stored for file %s", file["name"])
 
+    cleanup(gtk_context)
+
     # set return code
     return_code = 0
     return return_code
@@ -142,9 +163,12 @@ def run_pydeface(filepath):
         stderr=sp.PIPE, universal_newlines=True
     )
     stdout, stderr = prc.communicate()
+    log.info("Running pydeface")
+    log.info(stdout)
+    log.info(stderr)
 
 def run_bet(filepath):
-    mybet = fsl.BET(in_file=filepath, out_file=filepath)
+    mybet = fsl.BET(in_file=filepath, out_file=filepath.replace(".nii.gz", "_brain.nii.gz"), frac=0.4)
     result = mybet.run()
 
 def cleanup(context):
@@ -167,6 +191,15 @@ def cleanup(context):
 
     # copy all output files to output dir
     searchfiles = sp.Popen(
+        "cd " + context.work_dir.absolute().as_posix() + "; cp *.jpg " + context.output_dir.absolute().as_posix(),
+        shell=True,
+        stdout=sp.PIPE,
+        stderr=sp.PIPE, universal_newlines=True
+    )
+    stdout, _ = searchfiles.communicate()
+
+    # copy all output files to output dir
+    searchfiles = sp.Popen(
         "cd " + context.work_dir.absolute().as_posix() + "; cp *.pdf " + context.output_dir.absolute().as_posix(),
         shell=True,
         stdout=sp.PIPE,
@@ -174,14 +207,22 @@ def cleanup(context):
     )
     stdout, _ = searchfiles.communicate()
 
+    # copy all output files to output dir
+    rmfiles = sp.Popen(
+        "cd " + context.work_dir.absolute().as_posix() + "; rm -Rf * ",
+        shell=True,
+        stdout=sp.PIPE,
+        stderr=sp.PIPE, universal_newlines=True
+    )
+    stdout, _ = rmfiles.communicate()
+
 
 if __name__ == "__main__":
     # TODO add Singularity capability
 
     # Get access to gear config, inputs, and sdk client if enabled.
     # with GearToolkitContext() as gtk_context:
-    with GearToolkitContext(config_path='/home/mri/Documents/flywheel-apps/my-brain-souvenir/my-brain-souvenir-0.2.0_inc0.0RC3-63472a895e9df877a1d99db5/config.json'\
-                            , manifest_path='/home/mri/Documents/flywheel-apps/my-brain-souvenir/my-brain-souvenir-0.2.0_inc0.0RC3-63472a895e9df877a1d99db5/manifest.json') as gtk_context:
+    with GearToolkitContext(config_path='/flywheel/v0/config.json', manifest_path='/flywheel/v0/manifest.json', gear_path='/flywheel/v0') as gtk_context:
         gtk_context.init_logging()
         # config_dictionary = gtk_context.config_json['inputs']
 
@@ -193,7 +234,7 @@ if __name__ == "__main__":
         #     data = json.load(f)
         #     os.environ['API-KEY'] = data["key"]
         # config_dictionary['api-key']['key'] = os.environ['API-KEY']
-
+        os.environ["PATH"] = "/root/.cache/pypoetry/virtualenvs/my-brain-souvenir-n1iZ4KF1-py3.8/bin:"+os.environ["PATH"]
         parent, input_files = parser.parse_config(gtk_context)
 
         # if nifti file is passed use for brain image
@@ -216,6 +257,6 @@ if __name__ == "__main__":
             for container in root_walker.walk():
                 return_code = my_curator.curate_container(container)
 
-        cleanup(gtk_context)
+
 
         sys.exit(return_code)
