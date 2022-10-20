@@ -6,9 +6,9 @@
             "optional": true,
             "description": "Image used to generate brain souvenir. Input image should be structural 3D nifti format. We highly recommend using a pydefaced or brain extracted image to ensure data anonymity. If no image is passed, gear will look for good candidates for image export."
         },
-        "api-key": {
-            "base": "api-key",
-            "read-only": true
+        "key": {
+          "base": "api-key",
+          "read-only": true
         }
     },
     "config": {
