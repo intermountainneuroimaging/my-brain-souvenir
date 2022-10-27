@@ -86,7 +86,7 @@
         },
         "gear-builder": {
             "category": "analysis",
-            "image": "amhe4269/my-brain-souvenir:0.2.0_inc0.0RC9"
+            "image": "amhe4269/my-brain-souvenir:0.2.0_inc0.1"
         }
     },
     "author": "Amy Hegarty",
@@ -119,5 +119,5 @@
     "label": "My Brain Souvenir",
     "url": "https://github.com/intermountainneuroimaging",
     "source": "https://github.com/intermountainneuroimaging",
-    "version": "0.2.0_inc0.0RC9"
+    "version": "0.2.0_inc0.1"
 }

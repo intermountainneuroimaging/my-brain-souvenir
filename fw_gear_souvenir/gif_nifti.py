@@ -98,7 +98,8 @@ def create_mosaic_normal(out_img, maximum):
 
     return new_img
 
-def create_singleview_normal(out_img, maximum):
+
+def create_singleview_normal(out_img, maximum, slicedir="y"):
     """Create grayscale image.
 
     Parameters
@@ -111,13 +112,23 @@ def create_singleview_normal(out_img, maximum):
     new_img: numpy array
 
     """
-    new_img = np.array(
-        [np.flip(out_img[:, maximum - i - 1, :], 1).T
-            for i in range(maximum)])
 
+    if slicedir == "y":
+        new_img = np.array(
+            [np.flip(out_img[:, maximum - i - 1, :], 1).T
+             for i in range(maximum)])
+
+    elif slicedir == "x":
+        new_img = np.array(
+            [np.flip(out_img[i, :, :], 1).T
+             for i in range(maximum)])
+
+    elif slicedir == "z":
+        new_img = np.array(
+            [np.flip(out_img[:, :, maximum - i - 1], 1).T
+             for i in range(maximum)])
 
     return new_img
-
 
 
 def create_mosaic_depth(out_img, maximum):
@@ -219,8 +230,8 @@ def write_gif_normal(filename, size=1, fps=18):
     mimwrite(filename.replace(ext, '.gif'), new_img,
              format='gif', fps=int(fps * size))
 
-
     return new_img
+
 
 def write_gif_singleview_normal(filename, size=1, fps=18):
     """Procedure for writing grayscale image.
@@ -239,7 +250,13 @@ def write_gif_singleview_normal(filename, size=1, fps=18):
     out_img, maximum = load_and_prepare_image(filename, size)
 
     # Create output mosaic
-    new_img = create_singleview_normal(out_img, maximum)
+    if "cor" in filename:
+        slicedir = "y"
+    elif "sag" in filename:
+        slicedir = "x"
+    else:
+        slicedir = "y"
+    new_img = create_singleview_normal(out_img, maximum, slicedir=slicedir)
 
     # Figure out extension
     ext = '.{}'.format(parse_filename(filename)[2])
@@ -250,7 +267,7 @@ def write_gif_singleview_normal(filename, size=1, fps=18):
     new_img = new_img * 255
     new_img = new_img.astype('uint8')
 
-    mimwrite(filename.replace(ext, '_single.gif'), new_img,
+    mimwrite(filename.replace(ext, '.gif'), new_img,
              format='gif', fps=int(fps * size))
 
     return new_img
