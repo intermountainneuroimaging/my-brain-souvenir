@@ -98,6 +98,27 @@ def create_mosaic_normal(out_img, maximum):
 
     return new_img
 
+def create_singleview_normal(out_img, maximum):
+    """Create grayscale image.
+
+    Parameters
+    ----------
+    out_img: numpy array
+    maximum: int
+
+    Returns
+    -------
+    new_img: numpy array
+
+    """
+    new_img = np.array(
+        [np.flip(out_img[:, maximum - i - 1, :], 1).T
+            for i in range(maximum)])
+
+
+    return new_img
+
+
 
 def create_mosaic_depth(out_img, maximum):
     """Create an image with concurrent slices represented with colors.
@@ -196,6 +217,40 @@ def write_gif_normal(filename, size=1, fps=18):
     new_img = new_img.astype('uint8')
 
     mimwrite(filename.replace(ext, '.gif'), new_img,
+             format='gif', fps=int(fps * size))
+
+
+    return new_img
+
+def write_gif_singleview_normal(filename, size=1, fps=18):
+    """Procedure for writing grayscale image.
+
+    Parameters
+    ----------
+    filename: str
+        Input file (eg. /john/home/image.nii.gz)
+    size: float
+        Between 0 and 1.
+    fps: int
+        Frames per second
+
+    """
+    # Load NIfTI and put it in right shape
+    out_img, maximum = load_and_prepare_image(filename, size)
+
+    # Create output mosaic
+    new_img = create_singleview_normal(out_img, maximum)
+
+    # Figure out extension
+    ext = '.{}'.format(parse_filename(filename)[2])
+
+    # Write gif file
+
+    # change image datatype
+    new_img = new_img * 255
+    new_img = new_img.astype('uint8')
+
+    mimwrite(filename.replace(ext, '_single.gif'), new_img,
              format='gif', fps=int(fps * size))
 
     return new_img

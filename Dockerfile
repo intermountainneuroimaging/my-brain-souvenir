@@ -42,6 +42,9 @@ RUN apt-get update -qq \
     && curl -fsSL --retry 5 https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-6.0.3-centos6_64.tar.gz \
     | tar -xz -C /opt/fsl-6.0.3 --strip-components 1
 
+# install ffmpeg
+RUN apt-get update -qq && apt-get install ffmpeg -y
+
 #DEV install git
 RUN apt-get update && apt-get install -y git && \
     pip install "poetry==1.1.13"

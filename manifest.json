@@ -6,7 +6,7 @@
             "optional": true,
             "description": "Image used to generate brain souvenir. Input image should be structural 3D nifti format. We highly recommend using a pydefaced or brain extracted image to ensure data anonymity. If no image is passed, gear will look for good candidates for image export."
         },
-        "key": {
+        "api-key": {
           "base": "api-key",
           "read-only": true
         }
@@ -35,6 +35,11 @@
             "maximum": 1,
             "description": "Image resizing factor (range: 0-1)."
         },
+        "image-mosaic": {
+            "type": "boolean",
+            "default": true,
+            "description": "generate image using mosaic (3-panel) or single view"
+        },
         "colormap": {
             "type": "string",
             "optional": true,
@@ -53,24 +58,35 @@
             "description": "perform FSL's brain extraction before generating participant images (slower)",
             "type": "boolean"
         },
-        "modalities": {
+        "image-modalities": {
             "type": "string",
             "default": "T1, T2",
             "description": "List of modalities to filter for generating image souvenirs. Multiple modalities may be entered by a comma seperated list (e.g.: T1, T2, 3D)"
+        },
+        "image-features": {
+            "type": "string",
+            "optional": true,
+            "description": "List of features to filter for generating image souvenirs. Multiple modalities may be entered by a comma seperated list (e.g.: T1, T2, 3D)"
         },
         "debug": {
             "default": false,
             "description": "Log debug messages",
             "type": "boolean"
+        },
+        "output-format": {
+            "type": "string",
+            "default": "all",
+            "enum": ["all","gif","mov", "jpeg"],
+            "description": "select image format for output. Possible formats include: (MOVIE-mov, ANIMATION-gif, STATIC-jpg)"
         }
     },
     "custom": {
         "flywheel": {
-            "suite": "Tools"
+            "suite": "Curation"
         },
         "gear-builder": {
             "category": "analysis",
-            "image": "amhe4269/my-brain-souvenir:0.2.0_inc0.0RC4"
+            "image": "amhe4269/my-brain-souvenir:0.2.0_inc0.0RC9"
         }
     },
     "author": "Amy Hegarty",
@@ -83,17 +99,25 @@
         "FLYWHEEL": "/flywheel/v0",
         "GPG_KEY": "E3FF2839C048B25C084DEBE9B26995E310250568",
         "LANG": "C.UTF-8",
-        "PATH": "/root/.cache/pypoetry/virtualenvs/my-brain-souvenir-n1iZ4KF1-py3.8/bin:/opt/fsl-6.0.3/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+        "PATH": "/root/.cache/pypoetry/virtualenvs/my-brain-souvenir-n1iZ4KF1-py3.8/bin:/opt/fsl-6.0.3/bin:/usr/bin/ffmpeg:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
         "PYTHON_GET_PIP_SHA256": "5aefe6ade911d997af080b315ebcb7f882212d070465df544e1175ac2be519b4",
         "PYTHON_GET_PIP_URL": "https://github.com/pypa/get-pip/raw/5eaac1050023df1f5c98b173b248c260023f2278/public/get-pip.py",
         "PYTHON_PIP_VERSION": "22.0.4",
         "PYTHON_SETUPTOOLS_VERSION": "57.5.0",
-        "PYTHON_VERSION": "3.8.14"
+        "PYTHON_VERSION": "3.8.14",
+        "FSLWISH": "/opt/fsl-6.0.3/bin/fslwish",
+        "FSLDIR": "/opt/fsl-6.0.3",
+        "FSLOUTPUTTYPE": "NIFTI_GZ",
+        "FSLMULTIFILEQUIT": "TRUE",
+        "FSLTCLSH": "/opt/fsl-6.0.3/bin/fsltclsh"
+
+
+
     },
     "command": "poetry run python run.py",
     "license": "MIT",
     "label": "My Brain Souvenir",
     "url": "https://github.com/intermountainneuroimaging",
     "source": "https://github.com/intermountainneuroimaging",
-    "version": "0.2.0_inc0.0RC4"
+    "version": "0.2.0_inc0.0RC9"
 }

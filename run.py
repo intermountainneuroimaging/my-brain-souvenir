@@ -7,10 +7,15 @@ import flywheel
 import sys
 import subprocess as sp
 from io import StringIO
+
+import imageio
 from flywheel_gear_toolkit.utils.curator import HierarchyCurator
 from flywheel_gear_toolkit.utils import walker
 from fw_gear_souvenir import parser
 from fw_gear_souvenir import gif_nifti
+import ffmpy
+from imageio import mimwrite
+from imageio_ffmpeg import write_frames
 from flywheel_gear_toolkit import GearToolkitContext
 import nipype.interfaces.fsl as fsl
 import json
@@ -36,17 +41,32 @@ class Curator(HierarchyCurator):
         workdir = str(gtk_context.work_dir)
 
         # generate modalities list
-        modalities = gtk_context.config["modalities"].replace(" ","").split(",")
+        modalities = gtk_context.config["image-modalities"].replace(" ","").split(",")
+        if gtk_context.config.get("image-features"):
+            features = gtk_context.config["image-features"].replace(" ", "").split(",")
         # check if acquisition meets criteria
         flag = False
         for file in acquisition['files']:
-            if file['type'] == 'nifti' and file['classification']['Measurement'][0] in modalities and "ignore-BIDS" not in acquisition.label:
+            if (
+                file['type'] == 'nifti' and
+                "ignore-BIDS" not in acquisition.label
+            ):
+                # secondary check for modalities
+                if not file['classification'].get('Measurement') or file['classification'].get('Measurement')[0] not in modalities:
+                    continue
+
+                # secondary check for features
+                if 'features' in locals():
+                    # check for feature match
+                    if not file['classification'].get('Features') or file['classification'].get('Features')[0] not in features:
+                        continue
+
                 # download file
                 basename, ext = file['name'].split(os.extsep, 1)
                 filepath = os.path.join(workdir, acquisition['label'] + os.extsep + ext)
                 file.download(filepath)
 
-                # generate brain image
+                # generate brain image include pydeface or brain extraction if selected
                 gen_image(filepath, workdir, acquisition)
 
                 log.info("My Brain Souvenir stored for acquisition %s", acquisition.label)
@@ -69,6 +89,7 @@ def gen_image(filepath, workdir=None, acquisition=None):
     mode = gtk_context.config['gif-mode']
     fps = gtk_context.config['frames-per-second']
     size = gtk_context.config['image-size']
+    mosaic = gtk_context.config['image-mosaic']
 
     # Welcome message
     welcome_str = '{} {}'.format('gif_your_nifti', __version__)
@@ -105,7 +126,10 @@ def gen_image(filepath, workdir=None, acquisition=None):
 
         if mode in ['normal', 'pseudocolor', 'depth']:
             if mode == 'normal':
-                img = gif_nifti.write_gif_normal(file, size, fps)
+                if mosaic:
+                    img = gif_nifti.write_gif_normal(file, size, fps)
+                else:
+                    img = gif_nifti.write_gif_singleview_normal(file, size, fps)
             elif mode == 'pseudocolor':
                 if gtk_context.config.get('colormap') != None:
                     cmap = gtk_context.config['colormap']
@@ -119,16 +143,21 @@ def gen_image(filepath, workdir=None, acquisition=None):
         else:
             log.error("Mode: %m not supported, exiting now")
 
-        # build pdf
+        # build pdf/jpeg
         footnote = '"My Brain Image" was adapted from gif_your_nifti toolbox (www.github.com/miykael/gif_your_nifti)'
         basename, ext = file.split(os.extsep, 1)
         image_filename = file.replace(ext, 'jpg')
         gif_nifti.write_image(img, format="jpg", footnote=footnote, outfile=image_filename)
 
+        # Write a video file
+        writer = imageio.get_writer(file.replace(ext, 'mov'), fps=fps)
+        for im in img:
+            writer.append_data(im)
+        writer.close()
+
         # ADD DEPTH IMAGE FOR BRAIN IMAGES
         if "brain" in file:
             img = gif_nifti.write_gif_depth(file, size, fps)
-
 
 def run_with_single_input(gtk_context, input_files):
     workdir = str(gtk_context.work_dir)
@@ -145,6 +174,7 @@ def run_with_single_input(gtk_context, input_files):
 
     filepath = os.path.join(workdir, file["name"])
 
+    # generate gifs and jep images (run pydeface and brain extraction if need be)
     gen_image(filepath, workdir, acquisition)
 
     log.info("My Brain Souvenir stored for file %s", file["name"])
@@ -156,6 +186,7 @@ def run_with_single_input(gtk_context, input_files):
     return return_code
 
 def run_pydeface(filepath):
+
     prc = sp.Popen(
         "pydeface "+filepath,
         shell=True,
@@ -168,6 +199,7 @@ def run_pydeface(filepath):
     log.info(stderr)
 
 def run_bet(filepath):
+    log.info("Running brain extraction")
     mybet = fsl.BET(in_file=filepath, out_file=filepath.replace(".nii.gz", "_brain.nii.gz"), frac=0.4)
     result = mybet.run()
 
@@ -180,32 +212,48 @@ def cleanup(context):
                 containing the 'gear_dict' dictionary attribute with keys/values
                 utilized in the called helper functions.
         """
-    # copy all output files to output dir
-    searchfiles = sp.Popen(
-        "cd " + context.work_dir.absolute().as_posix() + "; cp *.gif " + context.output_dir.absolute().as_posix(),
-        shell=True,
-        stdout=sp.PIPE,
-        stderr=sp.PIPE, universal_newlines=True
-    )
-    stdout, _ = searchfiles.communicate()
 
-    # copy all output files to output dir
-    searchfiles = sp.Popen(
-        "cd " + context.work_dir.absolute().as_posix() + "; cp *.jpg " + context.output_dir.absolute().as_posix(),
-        shell=True,
-        stdout=sp.PIPE,
-        stderr=sp.PIPE, universal_newlines=True
-    )
-    stdout, _ = searchfiles.communicate()
+    #check which outputs should be stored for final gear "outputs"
+    fmt = gtk_context.config["output-format"]
+    if fmt == "all" or fmt == "gif":
+        # copy all output files to output dir
+        searchfiles = sp.Popen(
+            "cd " + context.work_dir.absolute().as_posix() + "; cp *.gif " + context.output_dir.absolute().as_posix(),
+            shell=True,
+            stdout=sp.PIPE,
+            stderr=sp.PIPE, universal_newlines=True
+        )
+        stdout, _ = searchfiles.communicate()
 
-    # copy all output files to output dir
-    searchfiles = sp.Popen(
-        "cd " + context.work_dir.absolute().as_posix() + "; cp *.pdf " + context.output_dir.absolute().as_posix(),
-        shell=True,
-        stdout=sp.PIPE,
-        stderr=sp.PIPE, universal_newlines=True
-    )
-    stdout, _ = searchfiles.communicate()
+    if fmt == "all" or fmt == "jpg":
+        # copy all output files to output dir
+        searchfiles = sp.Popen(
+            "cd " + context.work_dir.absolute().as_posix() + "; cp *.jpg " + context.output_dir.absolute().as_posix(),
+            shell=True,
+            stdout=sp.PIPE,
+            stderr=sp.PIPE, universal_newlines=True
+        )
+        stdout, _ = searchfiles.communicate()
+
+    if fmt == "all" or fmt == "pdf":
+        # copy all output files to output dir
+        searchfiles = sp.Popen(
+            "cd " + context.work_dir.absolute().as_posix() + "; cp *.pdf " + context.output_dir.absolute().as_posix(),
+            shell=True,
+            stdout=sp.PIPE,
+            stderr=sp.PIPE, universal_newlines=True
+        )
+        stdout, _ = searchfiles.communicate()
+
+    if fmt == "all" or fmt == "mov":
+        # copy all output files to output dir
+        searchfiles = sp.Popen(
+            "cd " + context.work_dir.absolute().as_posix() + "; cp *.mov " + context.output_dir.absolute().as_posix(),
+            shell=True,
+            stdout=sp.PIPE,
+            stderr=sp.PIPE, universal_newlines=True
+        )
+        stdout, _ = searchfiles.communicate()
 
     # copy all output files to output dir
     rmfiles = sp.Popen(
@@ -234,7 +282,7 @@ if __name__ == "__main__":
         #     data = json.load(f)
         #     os.environ['API-KEY'] = data["key"]
         # config_dictionary['api-key']['key'] = os.environ['API-KEY']
-        os.environ["PATH"] = "/root/.cache/pypoetry/virtualenvs/my-brain-souvenir-n1iZ4KF1-py3.8/bin:"+os.environ["PATH"]
+        os.environ["PATH"] = "/root/.cache/pypoetry/virtualenvs/my-brain-souvenir-n1iZ4KF1-py3.8/bin:/usr/bin/ffmpeg:"+os.environ["PATH"]
         parent, input_files = parser.parse_config(gtk_context)
 
         # if nifti file is passed use for brain image
