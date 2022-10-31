@@ -4,9 +4,11 @@ import os
 import nibabel as nb
 import numpy as np
 from matplotlib.cm import get_cmap
+from matplotlib.pyplot import figure
 import matplotlib.pyplot as plt
 from imageio import mimwrite
 from skimage.transform import resize
+from PIL import Image
 
 
 def parse_filename(filepath):
@@ -391,11 +393,12 @@ def write_gif_pseudocolor(filename, size=1, fps=18, colormap='hot'):
     return cmap_img
 
 
-def write_image(image, format="jpg", footnote=None, outfile="myImagePDF.pdf"):
+def write_image(filename, format="jpg", footnote=None, outfile="myImagePDF.pdf"):
     """
     Use gif image, generated from above functions to save image as pdf
     Args:
         image: 3D array generated from write_gif_normal (or other write_gif_<type>)
+        format: image format (jpeg, png, pdf, ...)
         footnote: short message that can be added to the bottom of pdf
         outfile: filename for output file
 
@@ -403,10 +406,32 @@ def write_image(image, format="jpg", footnote=None, outfile="myImagePDF.pdf"):
         saves pdf as output
 
     """
+    # Load NIfTI and put it in right shape
+    out_img, maximum = load_and_prepare_image(filename, 1)
+
+    # Create output mosaic
+    if "cor" in filename:
+        slicedir = "y"
+    elif "sag" in filename:
+        slicedir = "x"
+    else:
+        slicedir = "x"
+
+    image = create_singleview_normal(out_img, maximum, slicedir=slicedir)
+
+    # Figure out extension
+    ext = '.{}'.format(parse_filename(filename)[2])
+
+    # change image datatype
+    image = image * 255
+    image = image.astype('uint8')
+
     # find the middle frame of the gif 3D image
     midframe = round(image.shape[0] / 2)
 
     # plot image
+    figure(figsize=(8, 6), dpi=300, facecolor='black')
+    # fig, ax = plt.subplots()
     imgplot = plt.imshow(image[midframe, :, :])
     imgplot.set_cmap('gray')
 
@@ -414,8 +439,16 @@ def write_image(image, format="jpg", footnote=None, outfile="myImagePDF.pdf"):
     imgplot.axes.get_xaxis().set_visible(False)
     imgplot.axes.get_yaxis().set_visible(False)
 
+    # add logo
+    path = os.path.dirname(os.path.realpath(__file__))
+    im = Image.open(os.path.join(path, 'support_images/INC_rev_center.png'))
+    im.thumbnail((300, 300), Image.ANTIALIAS)  # resizes image in-place
+    im_width, im_height = im.size
+    bbox = plt.gca().get_window_extent()
+    plt.figimage(im, xo=600, yo=80, zorder=3, alpha=1, resize=False)
+
     # add footnote
-    plt.figtext(0.05, 0.0, footnote)
+    plt.figtext(0.5, 0.075, footnote, fontsize="x-small", color="white", horizontalalignment="center", verticalalignment="top")
 
     plt.savefig(outfile, format=format,
                 bbox_inches="tight")

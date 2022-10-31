@@ -2,27 +2,21 @@
 """My Brain Souvenir entrypoint."""
 import logging
 import os.path
-
 import flywheel
 import sys
 import subprocess as sp
-from io import StringIO
-
 import imageio
 from flywheel_gear_toolkit.utils.curator import HierarchyCurator
 from flywheel_gear_toolkit.utils import walker
 from fw_gear_souvenir import parser
 from fw_gear_souvenir import gif_nifti
-import ffmpy
-from imageio import mimwrite
-from imageio_ffmpeg import write_frames
 from flywheel_gear_toolkit import GearToolkitContext
 import nipype.interfaces.fsl as fsl
-import json
 
 log = logging.getLogger(__name__)
 
 __version__ = "0.2.0"
+
 
 class Curator(HierarchyCurator):
 
@@ -41,30 +35,41 @@ class Curator(HierarchyCurator):
         workdir = str(gtk_context.work_dir)
 
         # generate modalities list
-        modalities = gtk_context.config["image-modalities"].replace(" ","").split(",")
+        modalities = gtk_context.config["image-modalities"].replace(" ", "").split(",")
         if gtk_context.config.get("image-features"):
             features = gtk_context.config["image-features"].replace(" ", "").split(",")
         # check if acquisition meets criteria
         flag = False
         for file in acquisition['files']:
             if (
-                file['type'] == 'nifti' and
-                "ignore-BIDS" not in acquisition.label
+                    file['type'] == 'nifti' and
+                    "ignore-BIDS" not in acquisition.label
             ):
                 # secondary check for modalities
-                if not file['classification'].get('Measurement') or file['classification'].get('Measurement')[0] not in modalities:
+                if not file['classification'].get('Measurement') or file['classification'].get('Measurement')[
+                    0] not in modalities:
                     continue
 
                 # secondary check for features
                 if 'features' in locals():
                     # check for feature match
-                    if not file['classification'].get('Features') or file['classification'].get('Features')[0] not in features:
+                    if not file['classification'].get('Features') or file['classification'].get('Features')[
+                        0] not in features:
                         continue
+
+                # check if localizer
+                if not file['classification'].get('Intent') or file['classification'].get('Intent')[
+                    0] == "Localizer":
+                    continue
+
 
                 # download file
                 basename, ext = file['name'].split(os.extsep, 1)
-                filepath = os.path.join(workdir, acquisition['label'] + os.extsep + ext)
+                filepath = os.path.join(workdir, acquisition['label'] + os.extsep + ext).replace(" ", "").replace("-",
+                                                                                                                  "_")
                 file.download(filepath)
+
+                log.info("Building souvenir for file: %s", filepath)
 
                 # generate brain image include pydeface or brain extraction if selected
                 gen_image(filepath, workdir, acquisition)
@@ -77,14 +82,13 @@ class Curator(HierarchyCurator):
         if not flag:
             log.info("skipping acquisition %s", acquisition.label)
 
-
         # set return code
         return_code = 0
 
         return return_code
 
-def gen_image(filepath, workdir=None, acquisition=None):
 
+def gen_image(filepath, workdir=None, acquisition=None):
     # pull config settings
     mode = gtk_context.config['gif-mode']
     fps = gtk_context.config['frames-per-second']
@@ -144,10 +148,10 @@ def gen_image(filepath, workdir=None, acquisition=None):
             log.error("Mode: %m not supported, exiting now")
 
         # build pdf/jpeg
-        footnote = '"My Brain Image" was adapted from gif_your_nifti toolbox (www.github.com/miykael/gif_your_nifti)'
+        footnote = 'Incomplete study for research purposes only, not for medical use.'
         basename, ext = file.split(os.extsep, 1)
         image_filename = file.replace(ext, 'jpg')
-        gif_nifti.write_image(img, format="jpg", footnote=footnote, outfile=image_filename)
+        gif_nifti.write_image(file, format="jpg", footnote=footnote, outfile=image_filename)
 
         # Write a video file
         writer = imageio.get_writer(file.replace(ext, 'mov'), fps=fps)
@@ -158,6 +162,7 @@ def gen_image(filepath, workdir=None, acquisition=None):
         # ADD DEPTH IMAGE FOR BRAIN IMAGES
         if "brain" in file:
             img = gif_nifti.write_gif_depth(file, size, fps)
+
 
 def run_with_single_input(gtk_context, input_files):
     workdir = str(gtk_context.work_dir)
@@ -185,10 +190,10 @@ def run_with_single_input(gtk_context, input_files):
     return_code = 0
     return return_code
 
-def run_pydeface(filepath):
 
+def run_pydeface(filepath):
     prc = sp.Popen(
-        "pydeface "+filepath,
+        "pydeface " + filepath,
         shell=True,
         stdout=sp.PIPE,
         stderr=sp.PIPE, universal_newlines=True
@@ -198,10 +203,12 @@ def run_pydeface(filepath):
     log.info(stdout)
     log.info(stderr)
 
+
 def run_bet(filepath):
     log.info("Running brain extraction")
     mybet = fsl.BET(in_file=filepath, out_file=filepath.replace(".nii.gz", "_brain.nii.gz"), frac=0.4)
     result = mybet.run()
+
 
 def cleanup(context):
     """
@@ -213,7 +220,7 @@ def cleanup(context):
                 utilized in the called helper functions.
         """
 
-    #check which outputs should be stored for final gear "outputs"
+    # check which outputs should be stored for final gear "outputs"
     fmt = gtk_context.config["output-format"]
     if fmt == "all" or fmt == "gif":
         # copy all output files to output dir
@@ -269,20 +276,12 @@ if __name__ == "__main__":
     # TODO add Singularity capability
 
     # Get access to gear config, inputs, and sdk client if enabled.
-    # with GearToolkitContext() as gtk_context:
-    with GearToolkitContext(config_path='/flywheel/v0/config.json', manifest_path='/flywheel/v0/manifest.json', gear_path='/flywheel/v0') as gtk_context:
+    with GearToolkitContext() as gtk_context:
+    # with GearToolkitContext(config_path='/flywheel/v0/config.json', manifest_path='/flywheel/v0/manifest.json',
+    #                             gear_path='/flywheel/v0') as gtk_context:
         gtk_context.init_logging()
-        # config_dictionary = gtk_context.config_json['inputs']
-
-        # pull api key from hidden file if present (generally file located here... $HOME/.config/flywheel/user.json)
-        # apikey_file = os.path.join(os.environ["HOME"], '.config/flywheel/user.json')
-        # apikey_file = "/flywheel/v0/user.json"
-        # if os.path.exists(apikey_file):
-        #     f = open(apikey_file)
-        #     data = json.load(f)
-        #     os.environ['API-KEY'] = data["key"]
-        # config_dictionary['api-key']['key'] = os.environ['API-KEY']
-        os.environ["PATH"] = "/root/.cache/pypoetry/virtualenvs/my-brain-souvenir-n1iZ4KF1-py3.8/bin:/usr/bin/ffmpeg:"+os.environ["PATH"]
+        os.environ["PATH"] = "/root/.cache/pypoetry/virtualenvs/my-brain-souvenir-n1iZ4KF1-py3.8/bin:/usr/bin/ffmpeg:" + \
+                             os.environ["PATH"]
         parent, input_files = parser.parse_config(gtk_context)
 
         # if nifti file is passed use for brain image
@@ -304,7 +303,5 @@ if __name__ == "__main__":
 
             for container in root_walker.walk():
                 return_code = my_curator.curate_container(container)
-
-
 
         sys.exit(return_code)
