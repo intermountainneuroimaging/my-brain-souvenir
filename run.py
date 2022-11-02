@@ -277,11 +277,9 @@ if __name__ == "__main__":
 
     # Get access to gear config, inputs, and sdk client if enabled.
     with GearToolkitContext() as gtk_context:
-    # with GearToolkitContext(config_path='/flywheel/v0/config.json', manifest_path='/flywheel/v0/manifest.json',
-    #                             gear_path='/flywheel/v0') as gtk_context:
+
         gtk_context.init_logging()
-        os.environ["PATH"] = "/root/.cache/pypoetry/virtualenvs/my-brain-souvenir-n1iZ4KF1-py3.8/bin:/usr/bin/ffmpeg:" + \
-                             os.environ["PATH"]
+
         parent, input_files = parser.parse_config(gtk_context)
 
         # if nifti file is passed use for brain image

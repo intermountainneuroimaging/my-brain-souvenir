@@ -86,7 +86,7 @@
         },
         "gear-builder": {
             "category": "analysis",
-            "image": "amhe4269/my-brain-souvenir:0.2.0_inc0.2rc2"
+            "image": "amhe4269/my-brain-souvenir:0.2.0_inc0.2"
         }
     },
     "author": "Amy Hegarty",
@@ -110,14 +110,11 @@
         "FSLOUTPUTTYPE": "NIFTI_GZ",
         "FSLMULTIFILEQUIT": "TRUE",
         "FSLTCLSH": "/opt/fsl-6.0.3/bin/fsltclsh"
-
-
-
     },
     "command": "poetry run python run.py",
     "license": "MIT",
     "label": "My Brain Souvenir",
     "url": "https://github.com/intermountainneuroimaging",
     "source": "https://github.com/intermountainneuroimaging",
-    "version": "0.2.0_inc0.2rc2"
+    "version": "0.2.0_inc0.2"
 }
