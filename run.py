@@ -140,6 +140,7 @@ def gen_image(filepath, workdir=None, acquisition=None):
                     log.info('  cmap = {}'.format(cmap))
                     img = gif_nifti.write_gif_pseudocolor(file, size, fps, cmap)
                 else:
+
                     log.info('  cmap not set')
                     img = gif_nifti.write_gif_pseudocolor(file, size, fps)
             elif mode == 'depth':
@@ -192,6 +193,7 @@ def run_with_single_input(gtk_context, input_files):
 
 
 def run_pydeface(filepath):
+    # note - pydeface does not work in pycharm enviornment (does work on flywheel!)
     prc = sp.Popen(
         "pydeface " + filepath,
         shell=True,
@@ -276,7 +278,7 @@ if __name__ == "__main__":
     # TODO add Singularity capability
 
     # Get access to gear config, inputs, and sdk client if enabled.
-    with GearToolkitContext() as gtk_context:
+    with GearToolkitContext(manifest_path='/flywheel/v0/manifest.json', config_path='/flywheel/v0/config.json', gear_path='/flywheel/v0/') as gtk_context:
 
         gtk_context.init_logging()
 

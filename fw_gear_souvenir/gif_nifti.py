@@ -254,11 +254,18 @@ def write_gif_singleview_normal(filename, size=1, fps=18):
     # Create output mosaic
     if "cor" in filename:
         slicedir = "y"
+        ax = (1, 2)
     elif "sag" in filename:
         slicedir = "x"
+        ax = (0, 1)
     else:
         slicedir = "y"
+        ax = (1, 2)
     new_img = create_singleview_normal(out_img, maximum, slicedir=slicedir)
+
+    mask = np.all(new_img != 0, axis=ax)
+    if np.any(mask):
+        new_img = new_img[mask]
 
     # Figure out extension
     ext = '.{}'.format(parse_filename(filename)[2])
@@ -448,7 +455,8 @@ def write_image(filename, format="jpg", footnote=None, outfile="myImagePDF.pdf")
     plt.figimage(im, xo=600, yo=80, zorder=3, alpha=1, resize=False)
 
     # add footnote
-    plt.figtext(0.5, 0.075, footnote, fontsize="x-small", color="white", horizontalalignment="center", verticalalignment="top")
+    plt.figtext(0.5, 0.075, footnote, fontsize="x-small", color="white", horizontalalignment="center",
+                verticalalignment="top")
 
     plt.savefig(outfile, format=format,
                 bbox_inches="tight")
